@@ -1,0 +1,21 @@
+{
+    "name": "evo-neuron",
+    "description": "EVO Cloud Network Infrastructure",
+    "version": "0.0.1",
+    "author": "EaseWay Hu <easeway@gmail.com>",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/evo-cloud/neuron"
+    },
+    "main": "./neuron",
+    "bin": "./neuron.js",
+    "dependencies": {
+        "evo-elements": "git://github.com/evo-cloud/elements",
+        "underscore": "1.4.4",
+        "async": "0.2.8",
+        "express": "3.2.4",
+        "websocket": "1.0.8",
+        "request": "2.21.0",
+        "msgpack": "0.1.8"
+    }
+}
