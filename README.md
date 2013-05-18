@@ -27,7 +27,7 @@ node neuron.js --address 192.168.100.101 --port 680
 As no `bootstraps` is specified, the command above will start the node in master mode.
 
 ```bash
-node neuron.js --address 192.168.100.102 --port 680 --bootstraps 'json:["http://192.168.100.102:680"]'
+node neuron.js --address 192.168.100.102 --port 680 --bootstraps 'json:["http://192.168.100.101:680"]'
 ```
 
 With `bootstraps` specified, the node will try to join the network.
