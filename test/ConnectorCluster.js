@@ -1,7 +1,6 @@
-var async    = require('async'),
-    request  = require('request'),
-    elements = require('evo-elements'),
-    Class    = elements.Class,
+var async   = require('async'),
+    request = require('request'),
+    Class   = require('js-class'),
     
     Connector = require('../lib/Connector');
 

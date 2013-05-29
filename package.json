@@ -15,6 +15,7 @@
     "bin": "./neuron.js",
     "dependencies": {
         "evo-elements": "0.0.1",
+        "js-class": "0.0.1",
         "underscore": "1.4.4",
         "async": "0.2.8",
         "express": "3.2.4",
