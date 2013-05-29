@@ -1,42 +1,27 @@
 var assert  = require('assert'),
     async   = require('async'),
     Helpers = require('./Helpers'),
-    ConnectorCluster = require('./ConnectorCluster');
+    ClusterManager = require('./ClusterManager');
 
 describe('Connector Functional', function () {
     var cluster;
     
     beforeEach(function () {
-        cluster = new ConnectorCluster();
+        cluster = new ClusterManager();
     });
     
-    afterEach(function (done) {
-        this.timeout(10000);
-        cluster.stopAll(done);
+    afterEach(function () {
+        cluster.stop();
     });
     
     it('Simply creates a network with 16 nodes', function (done) {
         this.timeout(5000);
-        
-        var NODES = 16;
-        cluster.startAll(NODES, function () {
-            var timer = setInterval(function () {
-                if (cluster.connectors.every(function (connector) {
-                    return connector.ready;
-                })) {
-                    clearInterval(timer);
-                    setTimeout(function () {
-                        Helpers.expects(function () {
-                            for (var n = 0; n < NODES; n ++) {
-                                var nodes = cluster.nodes(n);
-                                for (var i = 0; i < NODES; i ++) {
-                                    assert(nodes[i], 'Node ' + i + ' not in Node ' + n);
-                                }
-                            }
-                        }, done, true);
-                    }, 2000);
+        cluster
+            .on('allready', function (ready) {
+                if (ready) {
+                    done();
                 }
-            }, 500);
-        });
+            })
+            .start(16, 'connector');
     });
 });
