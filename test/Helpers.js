@@ -1,12 +1,11 @@
 exports.expects = function (logic, reporter, alwaysReport) {
     try {
-        return logic();
+        logic();
     } catch (e) {
         reporter(e);
-        return undefined;
+        return;
     }
     if (alwaysReport) {
         reporter();
     }
-    return undefined;
 }

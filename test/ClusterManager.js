@@ -3,18 +3,18 @@ var fork    = require('child_process').fork,
     request = require('request');
 
 var ClusterNode = Class({
-    constructor: function (id, manager, mode) {
-        this.id = id;
+    constructor: function (index, manager, opts) {
+        this.index = index;
         this.manager = manager;
-        this.port = manager.portBase + id;
+        this.port = manager.portBase + index;
         var args = ['--id', this.port.toString(), '--port', this.port, '--address', '127.0.0.1' ];
-        if (id > 0) {
-            args.push('--bootstraps');
-            args.push('json:["http://127.0.0.1:' + manager.portBase + '"]');
-        }
-        if (mode) {
-            args.push('--mode');
-            args.push(mode);
+        for (var key in opts) {
+            args.push('--' + key);
+            if (typeof(opts[key]) == 'object' || Array.isArray(opts[key])) {
+                args.push('json:' + JSON.stringify(opts[key]));
+            } else {
+                args.push(opts[key]);
+            }
         }
         this.process = fork(__dirname + '/NodeHost.js', args)
             .on('message', this.onMessage.bind(this));
@@ -39,23 +39,33 @@ var ClusterNode = Class({
     },
     
     onMessage: function (msg) {
-        if (msg.event == 'topology') {
-            this.topology = msg.data;
-            //console.log('%d TOPOLOGY %j', this.port, this.topology);
-            var readiness = false;
-            if (this.topology && Array.isArray(this.topology.nodes)) {
-                var nodes = {};
-                this.topology.nodes.forEach(function (node) {
-                    nodes[node.id] = true;
-                });
-                readiness = this.manager.nodes.every(function (node) {
-                    var id = node.port.toString();
-                    return nodes[id]
-                });
-            }
-            this.manager.nodeReadiness(readiness, this);
+        switch (msg.event) {
+            case 'topology':
+                this.topology = msg.data;
+                //console.log('%d TOPOLOGY %j', this.port, this.topology);
+                this._checkReadiness();
+                break;
+            case 'state':
+                this.readyState = msg.data.ready;
+                this._checkReadiness();
+                break;
         }
         this.manager.nodeMessage(msg, this);
+    },
+    
+    _checkReadiness: function () {
+        var readiness = false;
+        if (this.readyState && this.topology && Array.isArray(this.topology.nodes)) {
+            var nodes = {};
+            this.topology.nodes.forEach(function (node) {
+                nodes[node.id] = true;
+            });
+            readiness = this.manager.nodes.every(function (node) {
+                var id = node.port.toString();
+                return nodes[id];
+            });
+        }
+        this.manager.nodeReadiness(readiness, this);
     }
 });
 
@@ -71,7 +81,14 @@ var ClusterManager = Class(process.EventEmitter, {
     
     start: function (nodeCount, mode) {
         for (var i = 0; i < nodeCount; i ++) {
-            this.nodes[i] = new ClusterNode(i, this, mode);
+            var opts = {};
+            if (mode) {
+                opts.mode = mode;
+            }
+            if (i > 0) {
+                opts.bootstraps = ['http://127.0.0.1:' + this.portBase];
+            }
+            this.nodes[i] = new ClusterNode(i, this, opts);
         }
         return this;
     },
@@ -82,6 +99,21 @@ var ClusterManager = Class(process.EventEmitter, {
         });
         this.nodes = [];
         return this;
+    },
+    
+    kill: function (index) {
+        var node = this.nodes[index];
+        delete this.nodes[index];
+        if (node) {
+            node.kill();
+        }
+        return this;
+    },
+    
+    spawn: function (index, opts) {
+        var node = new ClusterNode(index, this, opts);
+        this.nodes[index] = node;
+        return node;
     },
     
     nodeMessage: function (msg, node) {
