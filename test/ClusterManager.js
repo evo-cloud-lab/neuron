@@ -7,14 +7,15 @@ var ClusterNode = Class({
         this.index = index;
         this.manager = manager;
         this.port = manager.portBase + index;
-        var args = ['--id', this.port.toString(), '--port', this.port, '--address', '127.0.0.1' ];
+        var args = ['--id=' + this.port.toString(), '--port=' + this.port, '--address=127.0.0.1' ];
         for (var key in opts) {
-            args.push('--' + key);
-            if (typeof(opts[key]) == 'object' || Array.isArray(opts[key])) {
-                args.push('json:' + JSON.stringify(opts[key]));
-            } else {
-                args.push(opts[key]);
-            }
+            var val = (typeof(opts[key]) == 'object' || Array.isArray(opts[key])) ? JSON.stringify(opts[key]) : opts[key];
+            args.push('--' + key + '=' + val);
+        }
+        if (process.env.LOGGER != undefined) {
+            args.push('--logger=' + process.env.LOGGER);
+        } else {
+            args.push('--logger={"transports":{}}');
         }
         this.process = fork(__dirname + '/NodeHost.js', args)
             .on('message', this.onMessage.bind(this));

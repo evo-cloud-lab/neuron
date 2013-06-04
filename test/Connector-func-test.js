@@ -15,7 +15,7 @@ describe('Connector Functional', function () {
         cluster.stop();
     });
     
-    it.skip('Simply creates a network with 16 nodes', function (done) {
+    it('Simply creates a network with 16 nodes', function (done) {
         this.timeout(5000);
         cluster
             .on('allready', function (ready) {
@@ -26,7 +26,7 @@ describe('Connector Functional', function () {
             .start(16, 'connector');
     });
     
-    it.skip('Master election', function (done) {
+    it('Master election', function (done) {
         this.timeout(60000);
         var state = 'connect';
         cluster
