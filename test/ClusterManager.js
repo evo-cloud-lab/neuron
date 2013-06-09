@@ -15,7 +15,7 @@ var ClusterNode = Class({
         if (process.env.LOGGER != undefined) {
             args.push('--logger=' + process.env.LOGGER);
         } else {
-            args.push('--logger={"transports":{}}');
+            args.push('--logger={"drivers":{}}');
         }
         this.process = fork(__dirname + '/NodeHost.js', args)
             .on('message', this.onMessage.bind(this));
