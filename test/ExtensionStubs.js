@@ -97,7 +97,103 @@ var Link = Class({
     }
 });
 
+/** @class Service
+ * @description LocalService simulator
+ */
+var Service = Class({
+    constructor: function (extClasses, connector) {
+        this.exts = new Extensions(extClasses.map(function (extClass) { return new extClass(this); }.bind(this)));
+        this.connector = connector;
+        this.idBase = 0;
+        this.connections = {};
+    },
+    
+    addConnection: function (conn) {
+        this.connections[conn.id] = conn;
+        return this;
+    },
+    
+    sendToMaster: function (event, data) {
+        return this.connector ? this.connector.sendToMaster(event, data) : false;
+    },
+    
+    send: function (connId, event, data) {
+        var conn = this.connections[connId];
+        if (conn) {
+            conn.send({ event: event, data: data });
+            return true;
+        }
+        return false;
+    },
+    
+    broadcast: function (event, data) {
+        var msg = { event: event, data: data };
+        for (var connId in this.connections) {
+            var conn = this.connections[connId];
+            if (conn) {
+                conn.send(msg);
+            }
+        }
+    },
+    
+    multicast: function (connIds, event, data) {
+        var msg = { event: event, data: data };
+        connIds.forEach(function (connId) {
+            var conn = this.connections[connId];
+            if (conn) {
+                conn.send(msg);
+            }
+        }, this);
+    },
+    
+    onStateChanged: function (state) {
+        this.exts.invokeAsync('stateChanged', [state]);
+        this.broadcast('state', state);
+    },
+    
+    onMessage: function (msg) {
+        this.exts.dispatch('cluster', msg);
+    },
+    
+    onLocalMessage: function (msg, conn) {
+        this.exts.dispatch('client', msg, conn);
+    }
+});
+
+/** @class Connection
+ * @description Local connection simulator
+ */
+var Connection = Class({
+    constructor: function (service, id, messageHandler) {
+        this.service = service;
+        if (typeof(id) == 'function') {
+            this.messageHandler = id;
+        } else {
+            this.id = id;
+            this.messageHandler = messageHandler;
+        }
+        if (!this.id) {
+            this.id = ++ service.idBase;
+        }
+
+        this.service.addConnection(this);
+    },
+    
+    send: function (msg) {
+        if (this.messageHandler) {
+            this.messageHandler(msg);
+        }
+    },
+    
+    sendLocalMessage: function (event, data) {
+        this.service.onLocalMessage({ event: event, data: data }, this);
+        return this;
+    }
+});
+
 module.exports = {
     MasterContainer: MasterContainer,
-    Link: Link
+    Link: Link,
+    Service: Service,
+    Connection: Connection
 };

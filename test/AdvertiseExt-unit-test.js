@@ -57,7 +57,7 @@ describe('Ext - Advertise', function () {
                             topic: {
                                 p: {
                                     event: 'pub',
-                                    sources: {
+                                    content: {
                                         src: 'value'
                                     }
                                 }
@@ -145,7 +145,7 @@ describe('Ext - Advertise', function () {
                                 topic: {
                                     p: {
                                         event: 'pub',
-                                        sources: {
+                                        content: {
                                             src: 'value1'
                                         }
                                     }
@@ -198,7 +198,7 @@ describe('Ext - Advertise', function () {
                             assert.deepEqual(msg.data.update, { t1: {
                                 p: {
                                     event: 'pub',
-                                    sources: {
+                                    content: {
                                         src: 'phase2'
                                     }
                                 }
@@ -221,6 +221,477 @@ describe('Ext - Advertise', function () {
     });
     
     describe('Member', function () {
+        var service, ext;
         
+        beforeEach(function () {
+            service = new Stubs.Service([AdvertiseExt.Member]);
+            ext = service.exts.extensions[0];
+        });
+        
+        it('#pub', function (done) {
+            service.connector = {
+                sendToMaster: function (event, data) {
+                    Helpers.expects(function () {
+                        assert.equal(event, 'ad.pub');
+                        assert.deepEqual(data, { contents: {
+                            topic: {
+                                c1: 'Hello'
+                            }
+                        }});
+                    }, done, true);
+                }
+            };
+            new Stubs.Connection(service, 'c1').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+        });
+        
+        it('#unpub', function (done) {
+            var conn = new Stubs.Connection(service, 'c1');
+            async.series([
+                function (next) {
+                    service.connector = {
+                        sendToMaster: function (event, data) {
+                            Helpers.expects(function () {
+                                assert.equal(event, 'ad.pub');
+                                assert.deepEqual(data, { contents: {
+                                    topic: {
+                                        c1: 'Hello'
+                                    }
+                                }});
+                            }, next, true);
+                        }
+                    };
+                    conn.sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+                },
+                function (next) {
+                    service.connector = {
+                        sendToMaster: function (event, data) {
+                            Helpers.expects(function () {
+                                assert.equal(event, 'ad.unpub');
+                                assert.deepEqual(data, { names: ['topic'] });
+                            }, next, true);
+                        }
+                    };
+                    conn.sendLocalMessage('ad.unpub', { names: ['topic'] });                    
+                }
+            ], done);
+        });
+        
+        it('#pub multiple sources', function (done) {
+            async.series([
+                function (next) {
+                    service.connector = {
+                        sendToMaster: function (event, data) {
+                            Helpers.expects(function () {
+                                assert.equal(event, 'ad.pub');
+                                assert.deepEqual(data, { contents: {
+                                    topic: {
+                                        c1: 'Hello'
+                                    }
+                                }});
+                            }, next, true);
+                        }
+                    };
+                    new Stubs.Connection(service, 'c1').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+                },
+                function (next) {
+                    service.connector = {
+                        sendToMaster: function (event, data) {
+                            Helpers.expects(function () {
+                                assert.equal(event, 'ad.pub');
+                                assert.deepEqual(data, { contents: {
+                                    topic: {
+                                        c1: 'Hello',
+                                        c2: 'Hello c2'
+                                    }
+                                }});
+                            }, next, true);
+                        }
+                    };
+                    new Stubs.Connection(service, 'c2').sendLocalMessage('ad.pub', { contents: { topic: 'Hello c2' } });                    
+                }
+            ], done);            
+        });
+        
+        it('#unpub multiple sources', function (done) {
+            var conn1 = new Stubs.Connection(service, 'c1');
+            var conn2 = new Stubs.Connection(service, 'c2');
+            async.series([
+                function (next) {
+                    service.connector = {
+                        sendToMaster: function (event, data) {
+                            Helpers.expects(function () {
+                                assert.equal(event, 'ad.pub');
+                                assert.deepEqual(data, { contents: {
+                                    topic: {
+                                        c1: 'Hello'
+                                    }
+                                }});
+                            }, next, true);
+                        }
+                    };
+                    conn1.sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+                },
+                function (next) {
+                    service.connector = {
+                        sendToMaster: function (event, data) {
+                            Helpers.expects(function () {
+                                assert.equal(event, 'ad.pub');
+                                assert.deepEqual(data, { contents: {
+                                    topic: {
+                                        c1: 'Hello',
+                                        c2: 'Hello c2'
+                                    }
+                                }});
+                            }, next, true);
+                        }
+                    };
+                    conn2.sendLocalMessage('ad.pub', { contents: { topic: 'Hello c2' } });
+                },
+                function (next) {
+                    service.connector = {
+                        sendToMaster: function (event, data) {
+                            Helpers.expects(function () {
+                                assert.equal(event, 'ad.pub');
+                                assert.deepEqual(data, { contents: {
+                                    topic: {
+                                        c1: 'Hello'
+                                    }
+                                }});
+                            }, next, true);
+                        }
+                    };
+                    conn2.sendLocalMessage('ad.unpub', { names: ['topic'] });
+                },
+                function (next) {
+                    service.connector = {
+                        sendToMaster: function (event, data) {
+                            Helpers.expects(function () {
+                                assert.equal(event, 'ad.unpub');
+                                assert.deepEqual(data, { names: ['topic'] });
+                            }, next, true);
+                        }
+                    };
+                    conn1.sendLocalMessage('ad.unpub', { names: ['topic'] });
+                },
+            ], done);
+        });
+        
+        it('#pub when state changed to ready', function (done) {
+            new Stubs.Connection(service, 'c1').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+            service.connector = {
+                sendToMaster: function (event, data) {
+                    Helpers.expects(function () {
+                        assert.equal(event, 'ad.pub');
+                        assert.deepEqual(data, { contents: {
+                            topic: {
+                                c1: 'Hello'
+                            }
+                        }});
+                    }, done, true);
+                }
+            };
+            service.onStateChanged({ name: 'connected', ready: true });
+        });
+        
+        it('#watch', function (done) {
+            service.connector = {
+                sendToMaster: function (event, data) {
+                    Helpers.expects(function () {
+                        assert.equal(event, 'ad.watch');
+                        assert.deepEqual(data, { names: ['topic'] });
+                    }, done, true);
+                }
+            };
+            new Stubs.Connection(service, 'c1').sendLocalMessage('ad.watch', { names: ['topic'] });
+        });
+        
+        it('#unwatch', function (done) {
+            var conn = new Stubs.Connection(service, 'c1').sendLocalMessage('ad.watch', { names: ['topic'] });
+            service.connector = {
+                sendToMaster: function (event, data) {
+                    Helpers.expects(function () {
+                        assert.equal(event, 'ad.unwatch');
+                        assert.deepEqual(data, { names: ['topic'] });
+                    }, done, true);
+                }
+            };
+            conn.sendLocalMessage('ad.unwatch', { names: ['topic'] });
+        });
+        
+        it('#watch once', function (done) {
+            var count = 0;
+            service.connector = {
+                sendToMaster: function (event, data) {
+                    if (event == 'ad.watch') {
+                        count ++;
+                    } else if (event == 'ad.pub') {
+                        Helpers.expects(function () {
+                            assert.equal(count, 1);
+                        }, done, true);
+                    }                    
+                }
+            };
+            new Stubs.Connection(service, 'c1').sendLocalMessage('ad.watch', { names: ['topic'] });
+            new Stubs.Connection(service, 'c2').sendLocalMessage('ad.watch', { names: ['topic'] });
+            new Stubs.Connection(service, 'c3').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+        });
+        
+        it('#unwatch once', function (done) {
+            var count = 0;
+            service.connector = {
+                sendToMaster: function (event, data) {
+                    if (event == 'ad.unwatch') {
+                        count ++;
+                    } else if (event == 'ad.pub') {
+                        Helpers.expects(function () {
+                            assert.equal(count, 1);
+                        }, done, true);
+                    }                    
+                }
+            };
+            var conn1 = new Stubs.Connection(service, 'c1').sendLocalMessage('ad.watch', { names: ['topic'] });
+            var conn2 = new Stubs.Connection(service, 'c2').sendLocalMessage('ad.watch', { names: ['topic'] });
+            conn1.sendLocalMessage('ad.unwatch', { names: ['topic'] });
+            conn2.sendLocalMessage('ad.unwatch', { names: ['topic'] });
+            new Stubs.Connection(service, 'c3').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });            
+        });
+    });
+    
+    describe('Master and Member', function () {
+        var master;
+        
+        function createService(id) {
+            var link = new Stubs.Link(master, id);
+            var service = new Stubs.Service([AdvertiseExt.Member], link);
+            service.ext = service.exts.extensions[0];
+            link.messageHandler = function (msg) {
+                service.onMessage(msg);
+            };
+            return service;
+        }
+        
+        beforeEach(function () {
+            master = new Stubs.MasterContainer([AdvertiseExt.Master]);
+            master.ext = master.exts.extensions[0];
+        });
+        
+        it('pub and watch on the same service', function (done) {
+            var service = createService('p');
+            new Stubs.Connection(service, 'c1', function (msg) {
+                Helpers.expects(function () {
+                    assert.deepEqual(msg, {
+                        event: 'ad.update',
+                        data: {
+                            update: {
+                                topic: {
+                                    p: {
+                                        event: 'pub',
+                                        content: {
+                                            c2: 'Hello'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }, done, true);
+            }).sendLocalMessage('ad.watch', { names: ['topic'] });
+            new Stubs.Connection(service, 'c2').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+        });
+        
+        it('pub and watch on different services', function (done) {
+            new Stubs.Connection(createService('p1'), 'c', function (msg) {
+                Helpers.expects(function () {
+                    assert.deepEqual(msg, {
+                        event: 'ad.update',
+                        data: {
+                            update: {
+                                topic: {
+                                    p2: {
+                                        event: 'pub',
+                                        content: {
+                                            c: 'Hello'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }, done, true);
+            }).sendLocalMessage('ad.watch', { names: ['topic'] });
+            new Stubs.Connection(createService('p2'), 'c').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+        });
+        
+        it('pub updates are merged by delayed job', function (done) {
+            new Stubs.Connection(createService('p1'), 'c', function (msg) {
+                Helpers.expects(function () {
+                    assert.deepEqual(msg, {
+                        event: 'ad.update',
+                        data: {
+                            update: {
+                                topic: {
+                                    p2: {
+                                        event: 'pub',
+                                        content: {
+                                            c: 'Hello'
+                                        }
+                                    },
+                                    p3: {
+                                        event: 'pub',
+                                        content: {
+                                            c: 'Hello3'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }, done, true);
+            }).sendLocalMessage('ad.watch', { names: ['topic'] });
+            new Stubs.Connection(createService('p2'), 'c').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+            new Stubs.Connection(createService('p3'), 'c').sendLocalMessage('ad.pub', { contents: { topic: 'Hello3' } });
+        });
+        
+        it('initial contents for watch', function (done) {
+            new Stubs.Connection(createService('p1'), 'c').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+            // use setTimeout because ad.pub is send by delayed job to all clients
+            setTimeout(function () {
+                new Stubs.Connection(createService('p2'), 'c', function (msg) {
+                    Helpers.expects(function () {
+                        assert.deepEqual(msg, {
+                            event: 'ad.contents',
+                            data: {
+                                contents: {
+                                    topic: {
+                                        p1: {
+                                            c: 'Hello'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }, done, true);
+                }).sendLocalMessage('ad.watch', { names: ['topic'] });
+            }, 1);
+        });
+        
+        it('initial contents for watch in single service', function (done) {
+            var service = createService('p');
+            new Stubs.Connection(service, 'c1').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+            // use setTimeout because ad.pub is send by delayed job to all clients
+            setTimeout(function () {
+                new Stubs.Connection(service, 'c2', function (msg) {
+                    Helpers.expects(function () {
+                        assert.deepEqual(msg, {
+                            event: 'ad.contents',
+                            data: {
+                                contents: {
+                                    topic: {
+                                        p: {
+                                            c1: 'Hello'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }, done, true);
+                }).sendLocalMessage('ad.watch', { names: ['topic'] });
+            }, 1);
+        });
+        
+        it('disconnect event', function (done) {
+            var service = createService('p1');
+            var conn1 = new Stubs.Connection(service, 'c1').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+            var conn2 = new Stubs.Connection(createService('p2'), 'c2');
+            async.series([
+                function (next) {
+                    setTimeout(function () {
+                        conn2.messageHandler = function (msg) {
+                            Helpers.expects(function () {
+                                assert.deepEqual(msg, {
+                                    event: 'ad.contents',
+                                    data: {
+                                        contents: {
+                                            topic: {
+                                                p1: {
+                                                    c1: 'Hello'
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            }, next, true);
+                        };
+                        conn2.sendLocalMessage('ad.watch', { names: ['topic'] });
+                    }, 1);
+                },
+                function (next) {
+                    conn2.messageHandler = function (msg) {
+                        Helpers.expects(function () {
+                            assert.deepEqual(msg, {
+                                event: 'ad.update',
+                                data: {
+                                    update: {
+                                        topic: {
+                                            p1: {
+                                                event: 'off'
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }, next, true);
+                    };
+                    service.connector.disconnect();
+                }
+            ], done);
+        });
+        
+        it('unpub event', function (done) {
+            var conn1 = new Stubs.Connection(createService('p1'), 'c1').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
+            var conn2 = new Stubs.Connection(createService('p2'), 'c2');
+            async.series([
+                function (next) {
+                    setTimeout(function () {
+                        conn2.messageHandler = function (msg) {
+                            Helpers.expects(function () {
+                                assert.deepEqual(msg, {
+                                    event: 'ad.contents',
+                                    data: {
+                                        contents: {
+                                            topic: {
+                                                p1: {
+                                                    c1: 'Hello'
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            }, next, true);
+                        };
+                        conn2.sendLocalMessage('ad.watch', { names: ['topic'] });
+                    }, 1);
+                },
+                function (next) {
+                    conn2.messageHandler = function (msg) {
+                        Helpers.expects(function () {
+                            assert.deepEqual(msg, {
+                                event: 'ad.update',
+                                data: {
+                                    update: {
+                                        topic: {
+                                            p1: {
+                                                event: 'unpub'
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }, next, true);
+                    };
+                    conn1.sendLocalMessage('ad.unpub', { names: ['topic'] });
+                }
+            ], done);
+        });        
     });
 });
