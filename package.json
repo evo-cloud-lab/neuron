@@ -14,7 +14,7 @@
     "main": "./neuron",
     "bin": "./neuron.js",
     "dependencies": {
-        "evo-elements": "0.0.1",
+        "evo-elements": "git://github.com/evo-cloud/elements",
         "js-class": "0.0.1",
         "underscore": "1.4.4",
         "async": "0.2.8",
