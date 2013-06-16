@@ -1,7 +1,7 @@
 var assert = require('assert'),
     async  = require('async'),
+    Try    = require('evo-elements').Try,
 
-    Helpers = require('./Helpers'),
     Stubs   = require('./ExtensionStubs'),
     AdvertiseExt = require('../lib/AdvertiseExt');
 
@@ -22,11 +22,11 @@ describe('Ext - Advertise', function () {
             async.times(opts.count || 1, function (n, next) {
                 watchers[n] = new Stubs.Link(master, 'w' + n, function (msg) {
                     if (msg.event == 'ad.contents') {
-                        Helpers.expects(function () {                    
+                        Try.final(function () {                    
                             if (watchers.onContents) {
                                 watchers.onContents(n, msg);
                             }
-                        }, next, true);
+                        }, next);
                     } else if (msg.event == 'ad.update') {
                         if (watchers.onUpdate) {
                             watchers.onUpdate(n, msg);
@@ -52,7 +52,7 @@ describe('Ext - Advertise', function () {
                     assert.deepEqual(msg.data.contents, {});
                 },
                 onUpdate: function (n, msg) {
-                    Helpers.expects(function () {
+                    Try.final(function () {
                         assert.deepEqual(msg.data.update, {
                             topic: {
                                 p: {
@@ -63,7 +63,7 @@ describe('Ext - Advertise', function () {
                                 }
                             }
                         });
-                    }, done, true);
+                    }, done);
                 }
             }, function () {
                 new Stubs.Link(master, 'p').sendToMaster('ad.pub', { contents: { topic: { src: 'value' } } });
@@ -139,7 +139,7 @@ describe('Ext - Advertise', function () {
                 },
                 function (next) {
                     watchers.onUpdate = function (n, msg) {
-                        Helpers.expects(function () {
+                        Try.tries(function () {
                             assert.notEqual(n, 0);
                             assert.deepEqual(msg.data, { update: {
                                 topic: {
@@ -180,20 +180,20 @@ describe('Ext - Advertise', function () {
                 },
                 function (next) {
                     watchers.onUpdate = function (n, msg) {
-                        Helpers.expects(function () {
+                        Try.final(function () {
                             assert.notEqual(n, 0);
                             assert.deepEqual(msg.data.update, { t1: {
                                 w0: {
                                     event: 'off'
                                 }
                             }});
-                        }, next, true);
+                        }, next);
                     };
                     watchers[0][action]();
                 },
                 function (next) {
                     watchers.onUpdate = function (n, msg) {
-                        Helpers.expects(function () {
+                        Try.final(function () {
                             assert.notEqual(n, 0);
                             assert.deepEqual(msg.data.update, { t1: {
                                 p: {
@@ -203,7 +203,7 @@ describe('Ext - Advertise', function () {
                                     }
                                 }
                             }});
-                        }, next, true);          
+                        }, next);          
                     };
                     new Stubs.Link(master, 'p').sendToMaster('ad.pub', { contents: { t1: { src: 'phase2' } } });
                 }
@@ -231,14 +231,14 @@ describe('Ext - Advertise', function () {
         it('#pub', function (done) {
             service.connector = {
                 sendToMaster: function (event, data) {
-                    Helpers.expects(function () {
+                    Try.final(function () {
                         assert.equal(event, 'ad.pub');
                         assert.deepEqual(data, { contents: {
                             topic: {
                                 c1: 'Hello'
                             }
                         }});
-                    }, done, true);
+                    }, done);
                 }
             };
             new Stubs.Connection(service, 'c1').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
@@ -250,14 +250,14 @@ describe('Ext - Advertise', function () {
                 function (next) {
                     service.connector = {
                         sendToMaster: function (event, data) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 assert.equal(event, 'ad.pub');
                                 assert.deepEqual(data, { contents: {
                                     topic: {
                                         c1: 'Hello'
                                     }
                                 }});
-                            }, next, true);
+                            }, next);
                         }
                     };
                     conn.sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
@@ -265,10 +265,10 @@ describe('Ext - Advertise', function () {
                 function (next) {
                     service.connector = {
                         sendToMaster: function (event, data) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 assert.equal(event, 'ad.unpub');
                                 assert.deepEqual(data, { names: ['topic'] });
-                            }, next, true);
+                            }, next);
                         }
                     };
                     conn.sendLocalMessage('ad.unpub', { names: ['topic'] });                    
@@ -281,14 +281,14 @@ describe('Ext - Advertise', function () {
                 function (next) {
                     service.connector = {
                         sendToMaster: function (event, data) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 assert.equal(event, 'ad.pub');
                                 assert.deepEqual(data, { contents: {
                                     topic: {
                                         c1: 'Hello'
                                     }
                                 }});
-                            }, next, true);
+                            }, next);
                         }
                     };
                     new Stubs.Connection(service, 'c1').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
@@ -296,7 +296,7 @@ describe('Ext - Advertise', function () {
                 function (next) {
                     service.connector = {
                         sendToMaster: function (event, data) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 assert.equal(event, 'ad.pub');
                                 assert.deepEqual(data, { contents: {
                                     topic: {
@@ -304,7 +304,7 @@ describe('Ext - Advertise', function () {
                                         c2: 'Hello c2'
                                     }
                                 }});
-                            }, next, true);
+                            }, next);
                         }
                     };
                     new Stubs.Connection(service, 'c2').sendLocalMessage('ad.pub', { contents: { topic: 'Hello c2' } });                    
@@ -319,14 +319,14 @@ describe('Ext - Advertise', function () {
                 function (next) {
                     service.connector = {
                         sendToMaster: function (event, data) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 assert.equal(event, 'ad.pub');
                                 assert.deepEqual(data, { contents: {
                                     topic: {
                                         c1: 'Hello'
                                     }
                                 }});
-                            }, next, true);
+                            }, next);
                         }
                     };
                     conn1.sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
@@ -334,7 +334,7 @@ describe('Ext - Advertise', function () {
                 function (next) {
                     service.connector = {
                         sendToMaster: function (event, data) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 assert.equal(event, 'ad.pub');
                                 assert.deepEqual(data, { contents: {
                                     topic: {
@@ -342,7 +342,7 @@ describe('Ext - Advertise', function () {
                                         c2: 'Hello c2'
                                     }
                                 }});
-                            }, next, true);
+                            }, next);
                         }
                     };
                     conn2.sendLocalMessage('ad.pub', { contents: { topic: 'Hello c2' } });
@@ -350,14 +350,14 @@ describe('Ext - Advertise', function () {
                 function (next) {
                     service.connector = {
                         sendToMaster: function (event, data) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 assert.equal(event, 'ad.pub');
                                 assert.deepEqual(data, { contents: {
                                     topic: {
                                         c1: 'Hello'
                                     }
                                 }});
-                            }, next, true);
+                            }, next);
                         }
                     };
                     conn2.sendLocalMessage('ad.unpub', { names: ['topic'] });
@@ -365,10 +365,10 @@ describe('Ext - Advertise', function () {
                 function (next) {
                     service.connector = {
                         sendToMaster: function (event, data) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 assert.equal(event, 'ad.unpub');
                                 assert.deepEqual(data, { names: ['topic'] });
-                            }, next, true);
+                            }, next);
                         }
                     };
                     conn1.sendLocalMessage('ad.unpub', { names: ['topic'] });
@@ -380,14 +380,14 @@ describe('Ext - Advertise', function () {
             new Stubs.Connection(service, 'c1').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
             service.connector = {
                 sendToMaster: function (event, data) {
-                    Helpers.expects(function () {
+                    Try.final(function () {
                         assert.equal(event, 'ad.pub');
                         assert.deepEqual(data, { contents: {
                             topic: {
                                 c1: 'Hello'
                             }
                         }});
-                    }, done, true);
+                    }, done);
                 }
             };
             service.onStateChanged({ name: 'connected', ready: true });
@@ -396,10 +396,10 @@ describe('Ext - Advertise', function () {
         it('#watch', function (done) {
             service.connector = {
                 sendToMaster: function (event, data) {
-                    Helpers.expects(function () {
+                    Try.final(function () {
                         assert.equal(event, 'ad.watch');
                         assert.deepEqual(data, { names: ['topic'] });
-                    }, done, true);
+                    }, done);
                 }
             };
             new Stubs.Connection(service, 'c1').sendLocalMessage('ad.watch', { names: ['topic'] });
@@ -409,10 +409,10 @@ describe('Ext - Advertise', function () {
             var conn = new Stubs.Connection(service, 'c1').sendLocalMessage('ad.watch', { names: ['topic'] });
             service.connector = {
                 sendToMaster: function (event, data) {
-                    Helpers.expects(function () {
+                    Try.final(function () {
                         assert.equal(event, 'ad.unwatch');
                         assert.deepEqual(data, { names: ['topic'] });
-                    }, done, true);
+                    }, done);
                 }
             };
             conn.sendLocalMessage('ad.unwatch', { names: ['topic'] });
@@ -425,9 +425,9 @@ describe('Ext - Advertise', function () {
                     if (event == 'ad.watch') {
                         count ++;
                     } else if (event == 'ad.pub') {
-                        Helpers.expects(function () {
+                        Try.final(function () {
                             assert.equal(count, 1);
-                        }, done, true);
+                        }, done);
                     }                    
                 }
             };
@@ -443,9 +443,9 @@ describe('Ext - Advertise', function () {
                     if (event == 'ad.unwatch') {
                         count ++;
                     } else if (event == 'ad.pub') {
-                        Helpers.expects(function () {
+                        Try.final(function () {
                             assert.equal(count, 1);
-                        }, done, true);
+                        }, done);
                     }                    
                 }
             };
@@ -478,7 +478,7 @@ describe('Ext - Advertise', function () {
         it('pub and watch on the same service', function (done) {
             var service = createService('p');
             new Stubs.Connection(service, 'c1', function (msg) {
-                Helpers.expects(function () {
+                Try.final(function () {
                     assert.deepEqual(msg, {
                         event: 'ad.update',
                         data: {
@@ -494,14 +494,14 @@ describe('Ext - Advertise', function () {
                             }
                         }
                     });
-                }, done, true);
+                }, done);
             }).sendLocalMessage('ad.watch', { names: ['topic'] });
             new Stubs.Connection(service, 'c2').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
         });
         
         it('pub and watch on different services', function (done) {
             new Stubs.Connection(createService('p1'), 'c', function (msg) {
-                Helpers.expects(function () {
+                Try.final(function () {
                     assert.deepEqual(msg, {
                         event: 'ad.update',
                         data: {
@@ -517,14 +517,14 @@ describe('Ext - Advertise', function () {
                             }
                         }
                     });
-                }, done, true);
+                }, done);
             }).sendLocalMessage('ad.watch', { names: ['topic'] });
             new Stubs.Connection(createService('p2'), 'c').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
         });
         
         it('pub updates are merged by delayed job', function (done) {
             new Stubs.Connection(createService('p1'), 'c', function (msg) {
-                Helpers.expects(function () {
+                Try.final(function () {
                     assert.deepEqual(msg, {
                         event: 'ad.update',
                         data: {
@@ -546,7 +546,7 @@ describe('Ext - Advertise', function () {
                             }
                         }
                     });
-                }, done, true);
+                }, done);
             }).sendLocalMessage('ad.watch', { names: ['topic'] });
             new Stubs.Connection(createService('p2'), 'c').sendLocalMessage('ad.pub', { contents: { topic: 'Hello' } });
             new Stubs.Connection(createService('p3'), 'c').sendLocalMessage('ad.pub', { contents: { topic: 'Hello3' } });
@@ -557,7 +557,7 @@ describe('Ext - Advertise', function () {
             // use setTimeout because ad.pub is send by delayed job to all clients
             setTimeout(function () {
                 new Stubs.Connection(createService('p2'), 'c', function (msg) {
-                    Helpers.expects(function () {
+                    Try.final(function () {
                         assert.deepEqual(msg, {
                             event: 'ad.contents',
                             data: {
@@ -570,7 +570,7 @@ describe('Ext - Advertise', function () {
                                 }
                             }
                         });
-                    }, done, true);
+                    }, done);
                 }).sendLocalMessage('ad.watch', { names: ['topic'] });
             }, 1);
         });
@@ -581,7 +581,7 @@ describe('Ext - Advertise', function () {
             // use setTimeout because ad.pub is send by delayed job to all clients
             setTimeout(function () {
                 new Stubs.Connection(service, 'c2', function (msg) {
-                    Helpers.expects(function () {
+                    Try.final(function () {
                         assert.deepEqual(msg, {
                             event: 'ad.contents',
                             data: {
@@ -594,7 +594,7 @@ describe('Ext - Advertise', function () {
                                 }
                             }
                         });
-                    }, done, true);
+                    }, done);
                 }).sendLocalMessage('ad.watch', { names: ['topic'] });
             }, 1);
         });
@@ -607,7 +607,7 @@ describe('Ext - Advertise', function () {
                 function (next) {
                     setTimeout(function () {
                         conn2.messageHandler = function (msg) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 assert.deepEqual(msg, {
                                     event: 'ad.contents',
                                     data: {
@@ -620,14 +620,14 @@ describe('Ext - Advertise', function () {
                                         }
                                     }
                                 });
-                            }, next, true);
+                            }, next);
                         };
                         conn2.sendLocalMessage('ad.watch', { names: ['topic'] });
                     }, 1);
                 },
                 function (next) {
                     conn2.messageHandler = function (msg) {
-                        Helpers.expects(function () {
+                        Try.final(function () {
                             assert.deepEqual(msg, {
                                 event: 'ad.update',
                                 data: {
@@ -640,7 +640,7 @@ describe('Ext - Advertise', function () {
                                     }
                                 }
                             });
-                        }, next, true);
+                        }, next);
                     };
                     service.connector.disconnect();
                 }
@@ -654,7 +654,7 @@ describe('Ext - Advertise', function () {
                 function (next) {
                     setTimeout(function () {
                         conn2.messageHandler = function (msg) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 assert.deepEqual(msg, {
                                     event: 'ad.contents',
                                     data: {
@@ -667,14 +667,14 @@ describe('Ext - Advertise', function () {
                                         }
                                     }
                                 });
-                            }, next, true);
+                            }, next);
                         };
                         conn2.sendLocalMessage('ad.watch', { names: ['topic'] });
                     }, 1);
                 },
                 function (next) {
                     conn2.messageHandler = function (msg) {
-                        Helpers.expects(function () {
+                        Try.final(function () {
                             assert.deepEqual(msg, {
                                 event: 'ad.update',
                                 data: {
@@ -687,7 +687,7 @@ describe('Ext - Advertise', function () {
                                     }
                                 }
                             });
-                        }, next, true);
+                        }, next);
                     };
                     conn1.sendLocalMessage('ad.unpub', { names: ['topic'] });
                 }

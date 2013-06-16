@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/evo-cloud/neuron.png?branch=master)](https://travis-ci.org/evo-cloud/neuron)
+
 # Evo Cloud Network Infrastructure
 
 ## Overview

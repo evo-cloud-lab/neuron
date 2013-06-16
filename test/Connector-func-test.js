@@ -1,7 +1,8 @@
 var assert  = require('assert'),
     async   = require('async'),
+    Try     = require('evo-elements').Try,
     ClientSocket = require('websocket').client,
-    Helpers = require('./Helpers'),
+
     ClusterManager = require('./ClusterManager');
 
 describe('Connector Functional', function () {
@@ -46,11 +47,11 @@ describe('Connector Functional', function () {
                         break;
                     case 'elected':
                         if (ready) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 cluster.nodes.forEach(function (node) {
                                     assert.equal(node.topology.master, cluster.portBase + 1);
                                 });
-                            }, done, true);
+                            }, done);
                         }
                         break;
                 }
@@ -70,7 +71,7 @@ describe('Connector Functional', function () {
                             done(new Error('Expect connectFailed'));
                         })
                         .on('connectFailed', function (err) {
-                            Helpers.expects(function () {
+                            Try.final(function () {
                                 var lines = err.split('\n'), location;
                                 assert.ok(lines[0].match(/status: 302$/));
                                 assert.ok(lines.slice(1).some(function (line) {
@@ -79,7 +80,7 @@ describe('Connector Functional', function () {
                                     return !!m;
                                 }));
                                 assert.equal(location, 'ws://127.0.0.1:' + cluster.portBase);
-                            }, done, true);
+                            }, done);
                         })
                         .connect('ws://127.0.0.1:' + (cluster.portBase + 1), 'evo-neuron-json');
                 }
