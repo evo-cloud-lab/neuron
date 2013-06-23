@@ -11,11 +11,11 @@
         "type": "git",
         "url": "https://github.com/evo-cloud/neuron"
     },
-    "main": "./neuron",
+    "main": "./index",
     "bin": "./neuron.js",
     "dependencies": {
         "evo-elements": "git://github.com/evo-cloud/elements",
-        "js-class": "0.0.1",
+        "js-class": "0.0.2",
         "underscore": "1.4.4",
         "async": "0.2.8",
         "express": "3.2.4",
