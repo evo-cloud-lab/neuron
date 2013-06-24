@@ -1,4 +1,5 @@
 module.exports = {
-    Message: require('./lib/Message'),
-    Neuron:  require('./lib/Neuron')
+    Synapse: require('./lib/Synapse'),
+    Neuron:  require('./lib/Neuron'),
+    Message: require('./lib/Message')
 }
