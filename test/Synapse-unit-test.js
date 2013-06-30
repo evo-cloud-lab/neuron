@@ -402,8 +402,100 @@ describe('Synapse', function () {
             }, 30);
         });
         
-        it('queued message timeout');
+        it('queued message timeout', function (done) {
+            var msg = { event: 'test', data: {} };
+            var conn = new StubConnection();
+            var connector = createConnector(conn, 'unix:/local');
+            var ret = connector.send(msg, { timeout: 5 });
+            assert.strictEqual(ret, false);
+            assert.ok(!connector._connected);
+            assert.equal(connector._sendQueue.length, 1);
+            setTimeout(function () {
+                conn.emit('connect');
+                Try.final(function () {
+                    assert.ok(connector._connected);
+                    assert.equal(connector._sendQueue.length, 0);
+                    assert.equal(conn.packets.length, 0);
+                }, done);
+            }, 10);
+        });
         
-        it('message queue full');
+        it('message queue full', function (done) {
+            var conn = new StubConnection();
+            var connector = createConnector(conn, 'unix:/local', { sendQueueMax: 4 });
+            for (var i = 0; i < 4; i ++) {
+                var opts = i == 2 ? { timeout: 5 } : undefined;
+                var ret = connector.send({ event: 'test', data: { key: i } }, opts);
+                assert.strictEqual(ret, false);
+            }
+            assert.equal(connector._sendQueue.length, 4);
+            setTimeout(function () {
+                Try.final(function () {
+                    var ret = connector.send({ event: 'test', data: { key: 4 } });
+                    assert.strictEqual(ret, false);
+                    assert.equal(connector._sendQueue.length, 4);
+                    ret = connector.send({ event: 'test', data: { key: 5 } });
+                    assert.strictEqual(ret, undefined);
+                    assert.equal(connector._sendQueue.length, 4);
+                    assert.deepEqual(connector._sendQueue.map(function (msg) { return msg.message.data.key; }), [0, 1, 3, 4]);
+                }, done);
+            }, 10);
+        });
+    });
+    
+    describe('Receptor', function () {
+        var StubServer = Class(process.EventEmitter, {
+            listen: function () {
+                this.listenArgs = [].slice.call(arguments);
+            }
+        });
+        
+        var StubConnection = Class(process.EventEmitter, {
+            setTimeout: function () { }
+        });
+
+        function createReceptor(server, listenUri) {
+            var SandboxedSynapse = sandbox.require('../lib/Synapse', {
+                requires: {
+                    'net': {
+                        createServer: function () {
+                            return server;
+                        }
+                    }
+                }
+            });
+            return SandboxedSynapse.listen(listenUri);
+        }
+        
+        it('parse listening Uri', function () {
+            var receptor = createReceptor(new StubServer(), 'unix:/path/socket.sock');
+            assert.deepEqual(receptor.listener.listenArgs, ['/path/socket.sock']);
+            receptor = createReceptor(new StubServer(), 'tcp://:4567');
+            assert.deepEqual(receptor.listener.listenArgs, [4567]);
+            receptor = createReceptor(new StubServer(), 'tcp://host:4567');
+            assert.deepEqual(receptor.listener.listenArgs, [4567, 'host']);
+            assert.throws(function () {
+                createReceptor(new StubServer(), 'invalid:');
+            }, /invalid listening uri/i);
+        });
+        
+        it('receive a message', function (done) {
+            var msg = { event: 'test', data: { key: 456 } };
+            var receptor = createReceptor(new StubServer(), 'unix:/path/socket.sock');
+            var conn = new StubConnection();
+            
+            receptor
+                .on('connection', function (synapse) {
+                        synapse.on('message', function (recvMsg) {
+                            Try.final(function () {
+                                assert.deepEqual(recvMsg, msg);
+                            }, done);                            
+                        });
+                        var bufs = [new Buffer(4), Synapse.encodeMessage(msg)];
+                        bufs[0].writeUInt32BE(bufs[1].length, 0);
+                        conn.emit('data', Buffer.concat(bufs));
+                    })
+                .listener.emit('connection', conn);
+        });
     });
 });
