@@ -37,6 +37,10 @@ describe('Synapse', function () {
             
             resume: function () {
                 this.invocations.push('resume');
+            },
+            
+            discard: function () {
+                this.removeAllListeners();
             }
         });
         
@@ -126,7 +130,8 @@ describe('Synapse', function () {
                     this.encodedMsg = encodedMsg;
                     this.callback = callback;
                     return this.result;
-                }
+                },
+                discard: function () { }
             });
             
             var msg = { event: 'test', data: { say: 'hello' } }, opts = { key: 1 };
@@ -242,7 +247,8 @@ describe('Synapse', function () {
                     process.nextTick(function () {
                         this.emit('close');
                     }.bind(this));
-                }
+                },
+                discard: function () { }
             });
             
             var synapse;
