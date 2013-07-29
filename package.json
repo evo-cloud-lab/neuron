@@ -17,7 +17,7 @@
         "evo-elements": "git://github.com/evo-cloud/elements",
         "js-class": "0.0.2",
         "underscore": "1.5.1",
-        "async": "*",
+        "async": "0.2.9",
         "express": "3.2.4",
         "websocket": "1.0.8",
         "request": "2.21.0",
