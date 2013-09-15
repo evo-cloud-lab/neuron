@@ -1,10 +1,9 @@
 {
     "name": "evo-neuron",
     "description": "Evo Cloud Network Infrastructure",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "author": "Yisui Hu <easeway@gmail.com>",
     "scripts": {
-        "start": "node neuron",
         "test": "mocha --reporter spec test/*-test.js"
     },
     "repository": {
@@ -12,9 +11,8 @@
         "url": "https://github.com/evo-cloud/neuron"
     },
     "main": "./index",
-    "bin": "./neuron.js",
     "dependencies": {
-        "evo-elements": "git://github.com/evo-cloud/elements",
+        "evo-elements": "0.0.3",
         "js-class": "0.0.2",
         "underscore": "1.5.1",
         "async": "0.2.9",
