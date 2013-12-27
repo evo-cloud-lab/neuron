@@ -4,7 +4,8 @@
     "version": "0.0.3",
     "author": "Yisui Hu <easeway@gmail.com>",
     "scripts": {
-        "test": "mocha --reporter spec test/*-test.js"
+        "test": "mocha -R spec test/*-test.js",
+        "cov": "mocha -r blanket -R html-cov test/*-unit-test.js >_coverage.html"
     },
     "repository": {
         "type": "git",
@@ -20,7 +21,8 @@
     },
     "devDependencies": {
         "mocha": "1.12.0",
-        "sandboxed-module": "0.2.1"
+        "sandboxed-module": "0.2.1",
+        "blanket": "1.1.6"
     },
     "engines": {
         "node": ">=0.10",
@@ -31,5 +33,11 @@
             "type": "MIT",
             "url": "https://github.com/evo-cloud/neuron/raw/master/LICENSE"
         }
-    ]
+    ],
+    "config": {
+        "blanket": {
+            "onlyCwd": true,
+            "pattern": "//^((?!node_modules).)*/lib/.+$/"
+        }
+    }
 }
