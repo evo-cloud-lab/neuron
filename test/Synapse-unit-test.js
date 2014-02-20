@@ -1,54 +1,54 @@
 var assert  = require('assert'),
     sandbox = require('sandboxed-module'),
     Class   = require('js-class'),
-    Try     = require('evo-elements').Try,
+    Try     = require('js-flow').Try,
 
     Synapse = require('../lib/Synapse');
-    
+
 describe('Synapse', function () {
     describe('Stub transport', function () {
-        
+
         var StubTransport = Class({
             constructor: function () {
                 this.events = {};
                 this.invocations = [];
             },
-            
+
             on: function (event, handler) {
                 this.events[event] = handler;
                 return this;
             },
-            
+
             setTimeout: function (timeout) {
                 this.timeout = timeout;
             },
-            
+
             removeAllListeners: function () {
                 this.invocations.push('removeAllListeners');
             },
-            
+
             close: function () {
                 this.invocations.push('close');
             },
-            
+
             pause: function () {
                 this.invocations.push('pause');
             },
-            
+
             resume: function () {
                 this.invocations.push('resume');
             },
-            
+
             discard: function () {
                 this.removeAllListeners();
             }
         });
-        
+
         it('#constructor without transport', function () {
             var synapse = new Synapse();
             assert.equal(synapse.transport, undefined);
         });
-        
+
         it('#constructor', function () {
             var conn = new StubTransport();
             var synapse = new Synapse(conn);
@@ -59,7 +59,7 @@ describe('Synapse', function () {
             });
             assert.equal(conn.timeout, undefined);
         });
-        
+
         it('#attach close old transport', function () {
             var conn = new StubTransport();
             var synapse = new Synapse(conn);
@@ -73,16 +73,16 @@ describe('Synapse', function () {
             });
             assert.equal(newConn.timeout, 1234);
         });
-        
+
         it('#disconnect', function () {
             var synapse = new Synapse();
             synapse.disconnect();    // no error thrown
             var conn = new StubTransport();
             synapse.attach(conn);
             synapse.disconnect();
-            assert.deepEqual(conn.invocations, ['close']);            
+            assert.deepEqual(conn.invocations, ['close']);
         });
-        
+
         it('#pause', function () {
             var synapse = new Synapse();
             synapse.pause();    // no error thrown
@@ -91,7 +91,7 @@ describe('Synapse', function () {
             synapse.pause();
             assert.deepEqual(conn.invocations, ['pause']);
         });
-        
+
         it('#resume', function () {
             var synapse = new Synapse();
             synapse.resume();    // no error thrown
@@ -118,7 +118,7 @@ describe('Synapse', function () {
             synapse.setTimeout(1234);
             assert.equal(conn.timeout, 1234);
         });
-        
+
         describe('#send', function () {
             var StubTrans = Class(process.EventEmitter, {
                 constructor: function (result) {
@@ -133,9 +133,9 @@ describe('Synapse', function () {
                 },
                 discard: function () { }
             });
-            
+
             var msg = { event: 'test', data: { say: 'hello' } }, opts = { key: 1 };
-            
+
             it('returns true', function () {
                 var synapse = new Synapse(new StubTrans(true));
                 var passback;
@@ -153,7 +153,7 @@ describe('Synapse', function () {
                 assert.deepEqual(Synapse.decodeMessage(synapse.transport.encodedMsg), msg);
                 assert.equal(synapse._sendQueue.length, 0);
             });
-            
+
             it('returns false', function () {
                 var synapse = new Synapse(new StubTrans(false));
                 var passback;
@@ -190,7 +190,7 @@ describe('Synapse', function () {
                 assert.deepEqual(Synapse.decodeMessage(synapse.transport.encodedMsg), msg);
                 assert.equal(synapse._sendQueue.length, 0);
             });
-            
+
             it('queue messages', function () {
                 var synapse = new Synapse(new StubTrans(false));
                 var passback;
@@ -208,7 +208,7 @@ describe('Synapse', function () {
                 assert.equal(synapse.transport.encodedMsg, undefined);
                 assert.equal(synapse.transport.callback, undefined);
                 assert.equal(synapse._sendQueue.length, 1);
-                
+
                 synapse.transport.result = true;
                 synapse.transport.emit('drain');
                 assert.equal(synapse._sendQueue.length, 0);
@@ -221,7 +221,7 @@ describe('Synapse', function () {
                 assert.strictEqual(passback.msg, msg);
                 assert.strictEqual(passback.opts, undefined);
             });
-            
+
             it('abandon messages', function (done) {
                 var synapse = new Synapse(new StubTrans(false));
                 var callback = function (err) {
@@ -239,7 +239,7 @@ describe('Synapse', function () {
                 assert.ok(!synapse.transport);
             });
         });
-        
+
         describe('events', function () {
             var StubTrans = Class(process.EventEmitter, {
                 setTimeout: function () { },
@@ -250,13 +250,13 @@ describe('Synapse', function () {
                 },
                 discard: function () { }
             });
-            
+
             var synapse;
-            
+
             beforeEach(function () {
                 synapse = new Synapse(new StubTrans());
             });
-            
+
             it('#message', function (done) {
                 var msg = { event: 'test', data: { key: 1087 } };
                 synapse
@@ -267,7 +267,7 @@ describe('Synapse', function () {
                         })
                     .transport.emit('message', Synapse.encodeMessage(msg));
             });
-            
+
             it('#error', function (done) {
                 var err = new Error('test');
                 synapse
@@ -279,7 +279,7 @@ describe('Synapse', function () {
                         })
                     .transport.emit('error', err);
             });
-            
+
             it('#close', function (done) {
                 synapse
                     .on('close', function (hadError) {
@@ -290,7 +290,7 @@ describe('Synapse', function () {
                     .transport.emit('close', 'something');
                 assert.ok(!synapse.transport);
             });
-            
+
             it('#timeout', function (done) {
                 synapse
                     .on('close', done)
@@ -298,7 +298,7 @@ describe('Synapse', function () {
             });
         });
     });
-    
+
     describe('Connector', function () {
         var StubConnection = Class(process.EventEmitter, {
             constructor: function () {
@@ -306,22 +306,22 @@ describe('Synapse', function () {
                 this.packets = [];
                 this.result = true;
             },
-            
+
             setTimeout: function (timeout) {
                 this.timeout = timeout;
             },
-            
+
             write: function (data, callback) {
                 this.packets.push({ data: data, callback: callback });
                 return this.result;
             },
-            
+
             end: function () { this.invocations.push('end'); },
             destroy: function () { this.invocations.push('destroy'); },
             pause: function () { this.invocations.push('pause'); },
             resume: function () { this.invocations.push('resume'); }
         });
-        
+
         function createConnector(conn, connectUri, opts) {
             var SandboxedSynapse = sandbox.require('../lib/Synapse', {
                 requires: {
@@ -335,19 +335,19 @@ describe('Synapse', function () {
             });
             return SandboxedSynapse.connect(connectUri, opts);
         }
-        
+
         describe('connectUri', function () {
             var conn;
-            
+
             beforeEach(function () {
                 conn = new StubConnection();
             });
-            
+
             it('unix socket', function () {
                 var connector = createConnector(conn, 'unix:/path/socket.sock');
                 assert.deepEqual(conn.connectArgs, ['/path/socket.sock']);
             });
-            
+
             it('tcp', function () {
                 var connector = createConnector(conn, 'tcp://host:1234');
                 assert.deepEqual(conn.connectArgs, [1234, 'host']);
@@ -367,7 +367,7 @@ describe('Synapse', function () {
                 });
             });
         });
-        
+
         it('re-send message', function (done) {
             var msg = { event: 'test', data: { key: 'ok' } };
             var conn = new StubConnection();
@@ -394,7 +394,7 @@ describe('Synapse', function () {
                     assert.ok(connector._connected);
                     assert.equal(connector._sendQueue.length, 0);
                     assert.equal(conn.packets.length, 2);
-                    
+
                     conn.packets.forEach(function (pkt) {
                         assert.ok(Buffer.isBuffer(pkt.data));
                         assert.ok(pkt.data.length > 4);
@@ -407,7 +407,7 @@ describe('Synapse', function () {
                 }, done);
             }, 30);
         });
-        
+
         it('queued message timeout', function (done) {
             var msg = { event: 'test', data: {} };
             var conn = new StubConnection();
@@ -425,7 +425,7 @@ describe('Synapse', function () {
                 }, done);
             }, 10);
         });
-        
+
         it('message queue full', function (done) {
             var conn = new StubConnection();
             var connector = createConnector(conn, 'unix:/local', { sendQueueMax: 4 });
@@ -448,14 +448,14 @@ describe('Synapse', function () {
             }, 10);
         });
     });
-    
+
     describe('Receptor', function () {
         var StubServer = Class(process.EventEmitter, {
             listen: function () {
                 this.listenArgs = [].slice.call(arguments);
             }
         });
-        
+
         var StubConnection = Class(process.EventEmitter, {
             setTimeout: function () { }
         });
@@ -472,7 +472,7 @@ describe('Synapse', function () {
             });
             return SandboxedSynapse.listen(listenUri);
         }
-        
+
         it('parse listening Uri', function () {
             var receptor = createReceptor(new StubServer(), 'unix:/path/socket.sock');
             assert.deepEqual(receptor.listener.listenArgs, ['/path/socket.sock']);
@@ -484,18 +484,18 @@ describe('Synapse', function () {
                 createReceptor(new StubServer(), 'invalid:');
             }, /invalid listening uri/i);
         });
-        
+
         it('receive a message', function (done) {
             var msg = { event: 'test', data: { key: 456 } };
             var receptor = createReceptor(new StubServer(), 'unix:/path/socket.sock');
             var conn = new StubConnection();
-            
+
             receptor
                 .on('connection', function (synapse) {
                         synapse.on('message', function (recvMsg) {
                             Try.final(function () {
                                 assert.deepEqual(recvMsg, msg);
-                            }, done);                            
+                            }, done);
                         });
                         var bufs = [new Buffer(4), Synapse.encodeMessage(msg)];
                         bufs[0].writeUInt32BE(bufs[1].length, 0);

@@ -16,10 +16,10 @@
         "evo-elements": "git://github.com/evo-cloud/elements",
         "js-class": "0.0.2",
         "underscore": "1.5.1",
-        "async": "0.2.9",
         "msgpack": "0.1.11"
     },
     "devDependencies": {
+        "js-flow": "0.0.1",
         "mocha": "1.12.0",
         "sandboxed-module": "0.2.1",
         "blanket": "1.1.6"
